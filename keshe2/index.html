@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- 设置文档字符集为UTF-8 -->
+    <meta charset="UTF-8">
+    <!-- 设置IE浏览器的渲染模式为最新版本 -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- 设置视口宽度为设备宽度，初始缩放比例为1.0 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 页面标题 -->
+    <title>Document</title>
+    <!-- 导入样式表文件 -->
+    <link rel="stylesheet" href="css/window.css">
+    <link rel="stylesheet" href="css/side-bar.css">
+    <link rel="stylesheet" href="css/tinyView1.css">
+    <link rel="stylesheet" href="css/tinyView2.css">
+    <!-- 导入字体大小设置脚本和D3.js库 -->
+    <script src="./lib/fontsizeset.js"></script>
+    <script src="./lib/d3.js" charset="utf-8"></script>
+    <!-- 设置REM单位对应的像素大小 -->
+    <!-- 1rem = 14.6px -->
+</head>
+<body>
+    <!-- 页面头部 -->
+    <header>
+        <!-- 页面标题 -->
+        <h1>豆瓣top250</h1>
+    </header>
+    <!-- 整个窗口 -->
+    <div class="whole-window">
+        <!-- 主视图项目 -->
+        <div class="item main-view">
+            <!-- 主视图图片 -->
+            <img src="pic/1.webp" alt="" class="pic">
+        </div>
+        <!-- 侧边栏项目 -->
+        <div class="item side-bar">
+            <!-- 侧边栏标题 -->
+            <h3 class="side-header">豆瓣top250</h3>
+            <!-- 书籍列表 -->
+            <ul class="book-list"></ul>
+        </div>
+        
+        <!-- 视图1标题 -->
+        <div class="view1-title">
+            <!-- 视图1标题内容 -->
+            <h6>&nbsp&nbsp&nbsp&nbsp（年份:2000） -------------------------------></h6>
+        </div>
+        <!-- 视图1项目 -->
+        <div class="item tiny-view-1">
+            <!-- SVG图形容器1 -->
+            <svg class="svg1" xmlns="http://www.w3.org/2000/svg" view-box="0 0 27rem 11rem">
+            </svg>
+        </div>
+
+        <!-- 视图2标题 -->
+        <div class="view2-title">
+            <!-- 视图2标题内容 -->
+            <h6>作者作品数-></h6>
+        </div>
+        <!-- 视图2项目 -->
+        <div class="item tiny-view-2">
+            <!-- SVG图形容器2 -->
+            <svg class="svg2" xmlns="http://www.w3.org/2000/svg" view-box="0 0 27rem 11rem">
+            </svg>
+        </div>
+        <!-- 导入自定义脚本 -->
+        <script src="./js/myScript.js"></script>
+    </div>
+</body>
+</html>

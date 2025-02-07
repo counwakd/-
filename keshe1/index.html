@@ -1,0 +1,309 @@
+<!-- 设置文档字符集和视口 -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- 设置页面标题 -->
+<title>Understanding the mainstream direction selection of artificial intelligence</title>
+<!-- 导入D3.js库 -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<!-- 设置页面样式 -->
+    <style>
+    /* 定义节点样式 */
+        .node circle {
+        fill: #fff;
+        stroke: steelblue; /* 修改为明亮饱和的颜色 */
+        stroke-width: 4px;
+        cursor: pointer;
+        }
+        /* 定义节点文字样式 */
+        .node text {
+            font: 17px sans-serif;
+            pointer-events: none;
+        }
+         /* 定义节点标签文字样式 */
+        .node text.label {
+            fill: black;
+            text-anchor: middle;
+        }
+         /* 定义链接样式 */
+        .link {
+            fill: none;
+            stroke:#0000FF; /* 保持不变 */
+        }
+        /* 高亮样式 */
+        .highlighted {
+            stroke: orange;
+            stroke-width: 7px;
+        }
+        /* 定义模型列表样式 */
+        .model-list {
+            position: fixed;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            background-color: #f9f9f9;
+            padding: 20px;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            z-index: 999;
+            display: none;
+        }
+        /* 关闭按钮样式 */
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+        }
+        /* 介绍文字样式 */
+        .introduction-text {
+            word-wrap: break-word;
+        }
+        /* 模型项样式 */
+        .model-item {
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            margin-bottom: 20px; /* 添加一些底部间距 */
+        }
+         /* 模型信息样式 */
+        .model-info {
+            flex: 1; /* 让模型信息部分填充剩余空间 */
+        }
+        /* 模型图片样式 */
+        .model-image {
+            width: 600px; /* 设置图片宽度 */
+            height: 600px; /* 设置图片高度 */
+            margin-left: 90px; /* 添加一些左侧间距 */
+        }
+    </style>
+</head>
+<body>
+    <svg width="1200" height="800"></svg>
+    <div id="tooltip"></div>
+    <div id="chartContainer" class="chart-container"></div>
+    <div class="model-list" id="modelList">
+        <span class="close-btn" id="closeBtn">Close</span>
+        <ul id="modelUl"></ul>
+    </div>
+    <script>
+        const width = 1200;
+        const height = 800;
+
+        const svg = d3.select("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g")
+            .attr("transform", "translate(300,100)");
+
+        const tree = d3.tree()
+            .size([height - 200, width - 600])
+            .separation((a, b) => (a.parent === b.parent ? 10 : 6));
+
+        const root = { id: "AI hot direction", children: [] }; // 定义根节点
+
+        // 从CSV文件加载数据
+        d3.csv("data.csv", d3.autoType).then(function(data1) {
+            console.log("Row data for data.csv:", data1);
+
+                // 处理数据并更新图表
+                processDataAndUpdateChart(data1);
+        })
+
+        function processDataAndUpdateChart(combinedData) {
+            // 处理数据并更新图表的代码
+            const groupedData = d3.group(combinedData, d => d.direction);
+
+            groupedData.forEach((directionData, direction) => {
+                const directionNode = { id: direction, children: [], value: 0, hot: 0 };
+
+                const researchDirectionData = d3.group(directionData, d => d.research_direction);
+                researchDirectionData.forEach((researchData, researchDirection) => {
+                    const researchDirectionNode = { id: researchDirection, children: [], hot: 0 };
+
+                    // 计算节点的 hot 值为其分支节点 hot 值的平均值
+                    const hotValues = researchData.map(d => +d.hot); // 将 hot 值转换为数字
+                    const avgHot = hotValues.length > 0 ? d3.mean(hotValues) : 0; // 计算平均值，若无值则为0
+                    researchDirectionNode.hot = avgHot;
+                    researchDirectionNode.models = researchData.map(d => ({
+                        model: d.model,
+                        salary: d.salary,
+                        post: d.post,
+                        introduction: d.introduction // 确保正确提取 "introduction" 字段
+                    }));
+                    directionNode.children.push(researchDirectionNode);
+                });
+
+                // 计算第二层节点的 hot 值为其分支节点 hot 值的平均值
+                const hotValues = directionNode.children.map(d => d.hot); // 获取子节点的 hot 值
+                const avgHot = hotValues.length > 0 ? d3.mean(hotValues) : 0; // 计算平均值，若无值则为0
+                directionNode.hot = avgHot;
+
+                root.children.push(directionNode);
+            });
+
+            // 数据加载完毕后，更新图表
+            update(root);
+        }
+
+        function update(source) {
+            const nodes = tree(d3.hierarchy(source));
+
+            const link = svg.selectAll(".link")
+                .data(nodes.links())
+                .join("path")
+                .attr("class", "link")
+                .attr("d", d3.linkVertical()
+                            .x(d => d.y)
+                            .y(d => d.x))
+                .attr("stroke", "#ccc")
+                .attr("stroke-width", d => d.target.data.hot * 0.4); // 根据节点的权重调整边的粗细
+
+            const node = svg.selectAll(".node")
+                .data(nodes.descendants())
+                .join("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.y},${d.x})`);
+
+            node.append("circle")
+                .attr("r", 4.5)
+                .attr("fill", d => d.children ? "lightsteelblue" : "#fff")
+                .attr("stroke", "steelblue")
+                .on("mouseover", function (event, d) {
+                    highlightBranch(d3.select(this.parentNode).datum());
+                    d3.select(this).style("fill", "#FF0000"); // 悬停时变色
+                })
+                .on("mouseout", function () {
+                    resetHighlight();
+                    d3.select(this).style("fill", "#fff"); // 移开时恢复原色
+                });
+
+            node.append("text")
+                .attr("dy", "0.31em")
+                .attr("x", d => d.children ? -6 : 6)
+                .attr("text-anchor", d => d.children ? "end" : "start")
+                .text(d => d.data.id);
+
+            // 添加显示第三层节点的hot值和交互功能
+            const secondLayerNodes = node.filter(d => !d.children && d.parent && d.parent.parent);
+            // 添加显示第二层节点后分支节点的薪水和post信息
+            const firstLayerNodes = node.filter(d => d.parent && d.children);
+            firstLayerNodes.on("click", function (event, d) {
+                const posts = new Set();
+                posts.add("direction : " + d.data.id)
+                posts.add("Hot : " + d.data.hot)
+                d.descendants().forEach(node => {
+                    if (!node.children) {
+                        node.parent.children.forEach(child => {
+                            if (child !== node) {
+                                child.data.models.forEach(model => {
+                                        posts.add("post :  " + `${model.post}` + "   salary:  " + ` ${model.salary}`);
+                                });
+                            }
+                        });
+                    }
+                });
+                const info = [...posts].join("\n");
+                alert(info);
+            });
+
+
+            // 为第二层节点添加点击事件
+            secondLayerNodes.on("click", function (event, d) {
+                if (d.parent && d.parent.parent) {
+                    showModelList(d.data.models);
+                }
+            });
+
+            node.on("mousemove", showTooltip)
+                .on("mouseout", hideTooltip);
+            
+            //对相应结点对应的分支高亮显示
+            function highlightBranch(node) {
+                svg.selectAll(".node")
+                    .filter(d => d.ancestors().includes(node) || node.ancestors().includes(d))    // 寻找其祖先结点和分支结点
+                    .select("circle")
+                    .classed("highlight", true);
+
+                svg.selectAll(".link")
+                    .classed("highlighted", d => d.target.ancestors().includes(node) || node.ancestors().includes(d.target));
+            }
+            // 恢复默认颜色
+            function resetHighlight() {
+                svg.selectAll(".highlight")
+                    .classed("highlight", false);
+
+                svg.selectAll(".link.highlighted")
+                    .classed("highlighted", false);
+            }
+            // 弹窗显示研究方向对应的岗位及其平均薪资
+            function showTooltip(event, d) {
+                if (d.data.id !== "AI hot direction") {
+                    const tooltip = document.getElementById("tooltip");
+                    tooltip.innerHTML = `
+                        <strong>${d.data.id}</strong><br>
+                        Hot: ${d.data.hot}
+                    `;
+                    tooltip.style.display = "block";
+                    tooltip.style.left = event.pageX + "px";
+                    tooltip.style.top = event.pageY + "px";
+                }
+            }
+            // 显示细分研究领域的主要模型
+            function showModelList(models) {
+                const modelUl = document.getElementById("modelUl");
+
+                // 创建一个包含模型图片路径的对象
+                const modelImages = {
+                    "GPT": "https://pic4.zhimg.com/v2-3719ded69d63c2cf63297498efb6cbcb_b.jpg",
+                    "BERT": "https://ai-studio-static-online.cdn.bcebos.com/dc50f60f212f4f7ea0c2a490179e8795323399aa27414b31a1f825a51f044909",
+                    "XLNet": "https://pic2.zhimg.com/v2-a68602cdc210d29a126f97e033606ad1_r.jpg",
+                    "Transformer": "https://pic4.zhimg.com/v2-3c7eb9c6e6c9bd7410011329efb4eecb_r.jpg",
+                    "VAE": "https://pic2.zhimg.com/v2-4fc74015347e5df3ec82a358bf7d8a5f_1440w.jpg?source=172ae18b",
+                    "llama": "https://pic3.zhimg.com/v2-a26895320d7f67d296a320ae177c1816_b.jpg",
+                    "CNN": "https://pic2.zhimg.com/v2-9358b047f4e253a0ae49c583caba1695_r.jpg",
+                    "YOLO": "https://res-static.hc-cdn.cn/fms/img/b004d18a121580551d6a82e4ae494d441603444478511.jpg",
+                    "GAN": "https://pic3.zhimg.com/v2-afe2bc28e5eef370ad7706e526ad6d5f_r.jpg",
+                    "Q-learning": "https://cdn.analyticsvidhya.com/wp-content/uploads/2019/04/Screenshot-2019-04-16-at-5.46.01-PM.png",
+                    "DQN": "https://pic3.zhimg.com/v2-a04c903ca5873adb42aef6a51fd3e982_b.jpg",
+                    "Actor-Critic": "https://pic4.zhimg.com/v2-553684ebe48ecf733f2d24379f7b4a27_r.jpg",
+                    "EfficientDet" :"https://pic1.zhimg.com/v2-7271b38589e7eb6f128295bafc4d39b4_r.jpg",
+                    "RetinaNet" :"https://lh4.googleusercontent.com/iqxmjCfAnJYIEQjxcCxwDa-4PIMg0474JoPgQoa1A7267g5VvKJkRLi2VE1mVMYihsyAsIpFLiYtbpxMzbymMG6btK6PW-3SXDLgJVRRdQcsUAV4Dgbr9RKJ1WwbSWWCR4DxcZTY=s1600",
+                    "Faster R-CNN" :"https://pic4.zhimg.com/v2-e64a99b38f411c337f538eb5f093bdf3_r.jpg",
+                    "Mask R-CNN" :"https://pic1.zhimg.com/v2-3c5a4091ebbf489fd2c4cefaf78c2aa4_r.jpg",
+                    "Gated-SCNN" :"https://pic1.zhimg.com/v2-5413582feca3201b7022b002a76095a8_r.jpg",
+                    "FusionNet" :"https://pic4.zhimg.com/v2-32952e02ba6d7462dba6c533701c159b_r.jpg",
+                    "Meta-Learning" :"https://pic4.zhimg.com/v2-e8538e04f0cadba85ead798c7aa2250b_r.jpg",
+                    "User-User Collaborative Filtering" : "https://s3.amazonaws.com/dev.assets.neo4j.com/wp-content/uploads/20170210203931/User-based-collaborative-filtering-algorithm.png",
+                    "TF-IDF" :"https://miro.medium.com/max/3604/0*5eNLy2lQuaG14yke.png",
+                    "Knowledge Graph" :"https://www.ontotext.com/wp-content/uploads/2021/05/KG-map-copyright.png",
+                    "Weighted Hybrid Model" :"https://www.researchgate.net/publication/337686018/figure/fig1/AS:831835336622081@1575336407879/Hybrid-weighted-model.png",
+                    "Cascade Hybrid Model" :"https://th.bing.com/th/id/OIP.o04nwwFWAWN7_PHa5byjEgHaEa?rs=1&pid=ImgDetMain",
+                    "Word Embedding" :"https://lilianweng.github.io/posts/2017-10-15-word-embedding/word2vec-cbow.png",
+                    "Item-Item Collaborative Filtering" :"https://editor.analyticsvidhya.com/uploads/18139Fig1.jpg",
+                    // 添加其他模型的图片路径
+                };
+
+                // 使用模型图片路径创建模型列表项
+                modelUl.innerHTML = models.map(model => {
+                    const imagePath = modelImages[model.model] || ""; // 获取模型图片路径
+                    return `<li>${model.model} -  <span class="introduction-text">${model.introduction || ''}</span></li><img src="${imagePath} " alt="${model.model} " " class="model-image">`;
+                }).join("");
+
+                const modelList = document.getElementById("modelList");
+                modelList.style.display = "block";
+            }
+
+            // 隐藏提示框
+            function hideTooltip() {
+                const tooltip = document.getElementById("tooltip");
+                tooltip.style.display = "none";
+            }
+
+            document.getElementById("closeBtn").addEventListener("click", function() {
+                const modelList = document.getElementById("modelList");
+                modelList.style.display = "none";
+            });
+        }
+    </script>
+</body>
+</html>
